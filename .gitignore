@@ -1,0 +1,22 @@
+# Ignore Gradle project-specific cache directory
+.gradle
+.bloop/
+target/
+project/target/
+.history/
+.idea/
+.metals/
+.vscode/
+.DS_Store
+*.log
+*.bak
+*.swp
+*.iml
+.classpath
+.project
+.settings/
+tmp/
+logs/
+out/
+dist/
+build/
