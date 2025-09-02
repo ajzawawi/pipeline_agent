@@ -13,6 +13,8 @@ ficus         = "1.5.2"
 minio         = "8.5.11"
 commonsIo       = "2.15.1"
 commonsCompress = "1.26.2"
+scalaLogging = "3.9.5"
+
 
 [libraries]
 junit = { module = "junit:junit", version.ref = "junit" }
@@ -23,6 +25,7 @@ scala-compiler = { module = "org.scala-lang:scala-compiler", version.ref = "scal
 scala-xml-v2-v13 = { module = "org.scala-lang.modules:scala-xml_2.13", version.ref = "scala-xml-v2-v13" }
 scalatest-v2-v13 = { module = "org.scalatest:scalatest_2.13", version.ref = "scalatest-v2-v13" }
 logback-classic = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+scala-logging = { module = "com.typesafe.scala-logging:scala-logging_2.13", version.ref = "scalaLogging" }
 
 typesafe-config = { module = "com.typesafe:config", version.ref = "config" }
 ficus = { module = "com.iheart:ficus_2.13", version.ref = "ficus" }

@@ -3,6 +3,7 @@ package com.ajzawawi.pipeline.agent.source
 import com.ajzawawi.pipeline.agent.csv.CsvWriter
 import com.ajzawawi.pipeline.agent.validator.file.{FileValidationOutcome, FileValidator}
 import com.ajzawawi.pipeline.agent.validator.row._
+import com.typesafe.scalalogging.LazyLogging
 
 import java.nio.charset.StandardCharsets
 import java.nio.file.StandardWatchEventKinds._
@@ -11,15 +12,14 @@ import java.time.{Instant, ZoneOffset}
 import java.time.format.DateTimeFormatter
 import scala.jdk.CollectionConverters._
 import scala.util.Using
-
 import org.apache.commons.io.IOUtils
 import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream
-import java.nio.file.{Files, Path, StandardCopyOption, AtomicMoveNotSupportedException}
 
-import java.util.concurrent.{ThreadFactory, ThreadPoolExecutor, LinkedBlockingQueue, TimeUnit}
+import java.nio.file.{AtomicMoveNotSupportedException, Files, Path, StandardCopyOption}
+import java.util.concurrent.{LinkedBlockingQueue, ThreadFactory, ThreadPoolExecutor, TimeUnit}
 import java.util.concurrent.ConcurrentHashMap
 
-final class Source(val cfg: SourceConfig) extends AutoCloseable {
+final class Source(val cfg: SourceConfig) extends AutoCloseable with LazyLogging {
   @volatile private var running = false
   private val watcher = FileSystems.getDefault.newWatchService()
   private var watchKey: WatchKey = _
@@ -77,7 +77,7 @@ final class Source(val cfg: SourceConfig) extends AutoCloseable {
     val t = new Thread(() => loop(), s"source-${cfg.name}-watcher")
     t.setDaemon(true)
     t.start()
-    println(s"[source:${cfg.name}] watching ${cfg.inbox}")
+    logger.info(s"[source:${cfg.name}] watching ${cfg.inbox}")
   }
 
   def stop(): Unit = { running = false; watcher.close() }
@@ -140,10 +140,10 @@ final class Source(val cfg: SourceConfig) extends AutoCloseable {
       processFile(file)
     } catch {
       case t: Throwable =>
-        println(s"[source:${cfg.name}] ERROR processing ${file.getFileName}: ${t.getMessage}")
+        logger.error(s"[source:${cfg.name}] ERROR processing ${file.getFileName}: ${t.getMessage}")
         if (Files.exists(file)) {
           val archived = archiveCompressed(cfg.archive.failed, file)
-          println(s"[source:${cfg.name}] archived (failed, gz) → $archived")
+         logger.error(s"[source:${cfg.name}] archived (failed, gz) → $archived")
         }
     }
   }
@@ -166,7 +166,7 @@ final class Source(val cfg: SourceConfig) extends AutoCloseable {
         writeFileRejectReport(file, reasons)
         if (Files.exists(file)) {
           val archived = archiveCompressed(cfg.archive.rejected, file)
-          println(s"[source:${cfg.name}] archived (rejected, gz) → $archived")
+          logger.info(s"[source:${cfg.name}] archived (rejected, gz) → $archived")
         }
 
       case FileValidationOutcome.Accepted(_) =>
@@ -189,7 +189,7 @@ final class Source(val cfg: SourceConfig) extends AutoCloseable {
 
         if (Files.exists(file)) {
           val archived = archiveCompressed(cfg.archive.accepted, file)
-          println(s"[source:${cfg.name}] archived (accepted, gz) → $archived")
+          logger.info(s"[source:${cfg.name}] archived (accepted, gz) → $archived")
         }
     }
   }
@@ -204,14 +204,14 @@ final class Source(val cfg: SourceConfig) extends AutoCloseable {
           |${reasons.map(r => s"- $r").mkString("\n")}
           |""".stripMargin
     Files.write(rep, body.getBytes(StandardCharsets.UTF_8))
-    println(s"[source:${cfg.name}] rejected ${file.getFileName}: ${reasons.mkString("; ")}")
+    logger.info(s"[source:${cfg.name}] rejected ${file.getFileName}: ${reasons.mkString("; ")}")
   }
 
   private def writeCleanCsv(file: Path, valids: Seq[RowValidationOutcome.Valid], delimiter: Char): Unit = {
     val out = cfg.output.clean.resolve(file.getFileName.toString.replaceAll("\\.[^.]+$", "") + ".clean.csv")
     val rows = valids.iterator.map(_.cells) // Vector[String]
     CsvWriter.write(out, rows, header = cfg.output.header, delimiter = delimiter)
-    println(s"[source:${cfg.name}] clean → ${out.getFileName} (${valids.size} rows)")
+    logger.info(s"[source:${cfg.name}] clean → ${out.getFileName} (${valids.size} rows)")
   }
 
   private def writeRowErrors(file: Path, invalids: Seq[RowValidationOutcome.Invalid]): Unit = {
@@ -227,7 +227,7 @@ final class Source(val cfg: SourceConfig) extends AutoCloseable {
     }
     val all = (header +: lines).mkString("\n").getBytes(StandardCharsets.UTF_8)
     Files.write(errPath, all)
-    println(s"[source:${cfg.name}] row errors → ${errPath.getFileName} (${invalids.size} bad rows)")
+    logger.info(s"[source:${cfg.name}] row errors → ${errPath.getFileName} (${invalids.size} bad rows)")
   }
 
   /** Ensure a unique target path in dir (append .1, .2, ...) */

@@ -22,6 +22,7 @@ dependencies {
     // Use Scala 2.13 in our library project
     implementation(libs.scala.library)
     implementation(libs.logback.classic)
+    implementation(libs.scala.logging)
 
     implementation(libs.typesafe.config)
     implementation(libs.ficus)

@@ -1,8 +1,9 @@
 package com.ajzawawi.pipeline.agent
 
 import com.ajzawawi.pipeline.agent.source.{Source, SourceConfigLoader}
+import com.typesafe.scalalogging.LazyLogging
 
-object PipelineAgent {
+object PipelineAgent extends LazyLogging {
 
   def run(): Unit = {
     val sources = SourceConfigLoader.loadAll().map(cfg => new Source(cfg))
@@ -16,7 +17,7 @@ object PipelineAgent {
       println("[agent] shutdown complete")
     }
 
-    println(s"[agent] started ${sources.size} source(s). Press Ctrl+C to exit.")
+    logger.info(s"[agent] started ${sources.size} source(s). Press Ctrl+C to exit.")
     // keep main alive
     while (true) Thread.sleep(60_000)
   }
